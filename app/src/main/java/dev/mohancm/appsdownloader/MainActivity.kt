@@ -1,11 +1,13 @@
 package dev.mohancm.appsdownloader
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlinx.coroutines.delay
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -13,9 +15,14 @@ import okhttp3.Request
 import okhttp3.Response
 import okio.IOException
 import java.io.File
+import java.lang.Thread.sleep
 
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        const val TAG = "AppsDownloader"
+    }
 
     private val downloadButton by lazy(LazyThreadSafetyMode.NONE) { findViewById<Button>(R.id.download_button) }
 
@@ -44,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 // Handle JSON download failure
+                Log.e(TAG, "onFailure: ", e )
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -53,9 +61,12 @@ class MainActivity : AppCompatActivity() {
                     val downloader = Downloader()
                     val installer = Installer()
                     for ((appName, app) in apps) {
-                        val file = File(filesDir, appName + ".apk")
+                        val file = File(filesDir, "$appName.apk")
                         downloader.downloadFile(app.url, file)
+                        Log.d(TAG, "onResponse URL: ${app.url}")
+                        Log.d(TAG, "onResponse File: ${file}")
                         installer.installApk(this@MainActivity, file)
+                        sleep(5000)
                     }
                 }
             }
