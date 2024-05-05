@@ -6,13 +6,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import okio.IOException
+import ru.gildor.coroutines.okhttp.await
 import java.io.File
+import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() {
@@ -32,7 +36,9 @@ class MainActivity : AppCompatActivity() {
 //        StrictMode.setVmPolicy(builder.build())
 //        builder.detectFileUriExposure()
         downloadButton.setOnClickListener {
-            downloadAndInstallApps()
+            lifecycleScope.launch(Dispatchers.IO) {
+                downloadAndInstallApps()
+            }
         }
 
     }
@@ -47,18 +53,21 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                response.body?.use { responseBody ->
-                    val jsonParser = JsonParser()
-                    val apps = jsonParser.parseJson(responseBody.string())
-                    val downloader = Downloader()
-                    val installer = Installer()
-                    for ((appName, app) in apps) {
-                        val file = File(filesDir, appName + ".apk")
-                        downloader.downloadFile(app.url, file)
-                        installer.installApk(this@MainActivity, file)
+                val responseBody = response.body ?: return
+                val jsonParser = JsonParser()
+                val apps = jsonParser.parseJson(responseBody.string())
+                val downloader = Downloader()
+                val installer = Installer()
+                for ((appName, app) in apps) {
+                    val file = File(filesDir, "$appName.apk")
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        downloader.downloadFile(app.url, file) {
+                            installer.installApk(this@MainActivity, it)
+                        }
                     }
                 }
             }
+
         })
     }
 }
