@@ -15,7 +15,7 @@ import ru.gildor.coroutines.okhttp.await
 import java.io.File
 import kotlin.math.sin
 
-class Downloader {
+object Downloader {
     suspend fun downloadFile(url: String, file: File, onDownloadComplete: suspend (File) -> Unit) {
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
